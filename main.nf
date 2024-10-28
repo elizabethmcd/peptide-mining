@@ -74,7 +74,8 @@ workflow {
     merge_peptide_stats(peptides_results, deepsig_results, blastp_results, genome_metadata)
 
     // autopeptideml predictions
-    autopeptideml_predictions(peptide_models_dir, peptide_models_list, nonredundant_smorfs)
+    model_combos_ch = nonredundant_smorfs.combine(peptide_models_list)
+    autopeptideml_predictions(peptide_models_dir, model_combos_ch)
 
 }
 
@@ -329,7 +330,7 @@ process autopeptideml_predictions {
     tag "${model_name}_autopeptideml"
     publishDir "${params.outdir}/autopeptideml", mode: 'copy'
 
-    memory = "20 GB"
+    memory = "10 GB"
     cpus = 6
 
     container "elizabethmcd/autopeptideml:latest"
@@ -337,8 +338,7 @@ process autopeptideml_predictions {
 
     input:
     path(model_dir)
-    val(model_name)
-    path(peptides_fasta)
+    tuple path(peptides_fasta), val(model_name)
 
     output:
     path("*.tsv"), emit: autopeptideml_tsv
