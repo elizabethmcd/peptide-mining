@@ -35,11 +35,6 @@ peptides_db_ch = channel.fromPath(params.peptides_fasta)
 
 // workflow steps
 workflow {
-    // make genome STB
-    all_genome_fastas_ch = genome_fastas.map{ it[1] }.collect()
-    make_genome_stb(all_genome_fastas_ch)
-    genome_stb_tsv = make_genome_stb.out.stb_tsv
-    
     // get small ORF predictions with smorfinder
     smorfinder(genome_fastas)
     smorf_proteins = smorfinder.out.faa_file
@@ -79,29 +74,6 @@ workflow {
     // merge peptide stats from peptides.py, deepsig, blastp results, and autopeptideml results
     autopeptideml_results = autopeptideml_predictions.out.autopeptideml_tsv.collect()
     merge_peptide_stats(peptides_results, deepsig_results, blastp_results, genome_metadata, autopeptideml_results)
-
-}
-
-process make_genome_stb {
-    tag "make_genome_stb"
-    publishDir "${params.outdir}/genomestb", mode: 'copy'
-
-    memory = '10 GB'
-    cpus = 1
-
-    container "quay.io/biocontainers/mulled-v2-949aaaddebd054dc6bded102520daff6f0f93ce6:aa2a3707bfa0550fee316844baba7752eaab7802-0"
-    conda "envs/biopython.yml"
-
-    input:
-    path(fasta_files)
-
-    output:
-    path("*.tsv"), emit: stb_tsv
-
-    script:
-    """
-    python ${baseDir}/bin/generate_genome_stb.py ${fasta_files.join(' ')} -o genomes_stb.tsv
-    """
 
 }
 

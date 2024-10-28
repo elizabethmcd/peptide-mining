@@ -1,3 +1,5 @@
+latch_metadata/__pycache__/
+wf/__pycache__/
 ssh*
 .nextflow/
 work/
