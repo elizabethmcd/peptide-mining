@@ -15,7 +15,8 @@ peptides_info_tsv <- args[1]
 deep_sig_tsv <- args[2]
 diamond_tsv <- args[3]
 genome_metadata <- args[4]
-output_tsv <- args[5]
+autopeptideml_dir <- args[5]
+output_tsv <- args[6]
 
 # read in files
 peptides_info <- read_tsv(peptides_info_tsv)
@@ -28,11 +29,19 @@ deepsig_info <- read_tsv(deep_sig_tsv, col_names = c("peptide_id",
                                                     "tmp1",
                                                     "tmp2",
                                                     "deepsig_description"))
+
 diamond_blast_results <- read_tsv(diamond_tsv)  %>% 
     mutate(peptide_id = qseqid)  %>% 
     select(-qseqid)
+
 genome_metadata <- read_tsv(genome_metadata)  %>% 
     select(mag_id, substrate, species, group)
+
+autopeptideml_files <- list.files(path = autopeptideml_dir, pattern = "autopeptideml_.*\\.tsv$", full.names=TRUE)
+
+autopeptideml_results <- map_dfr(autopeptideml_files, function(file) {
+    read_tsv(file)
+})
 
 # merge peptides info with deepsig results
 # merge with diamond blastp results
@@ -42,6 +51,7 @@ all_peptide_info_metadata <- left_join(deepsig_info, peptides_info)  %>%
     left_join(diamond_blast_results)  %>% 
     mutate(mag_id = str_extract(peptide_id, "^.*?(?=_id_)"))  %>% 
     left_join(genome_metadata)  %>% 
+    left_join(autopeptideml_df)  %>% 
     select(mag_id, peptide_id, everything())
 
 # write to tsv

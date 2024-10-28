@@ -31,7 +31,6 @@ peptide_models_dir = channel.fromPath(params.models_dir)
 peptide_models_list = channel.fromPath(params.models_list)
     .splitText()
     .map { it.trim() }
-peptide_models_list.view()
 peptides_db_ch = channel.fromPath(params.peptides_fasta)
 
 // workflow steps
@@ -71,15 +70,15 @@ workflow {
     diamond_blastp(nonredundant_smorfs, peptides_dmnd_db)
     blastp_results = diamond_blastp.out.blastp_hits_tsv
 
-    // merge peptide stats from peptides.py, deepsig, and blastp results
-    merge_peptide_stats(peptides_results, deepsig_results, blastp_results, genome_metadata)
-
     // autopeptideml predictions
     model_combos_ch = nonredundant_smorfs
         .combine(peptide_models_dir)
         .combine(peptide_models_list)
-    model_combos_ch.view()
     autopeptideml_predictions(model_combos_ch)
+
+    // merge peptide stats from peptides.py, deepsig, blastp results, and autopeptideml results
+    autopeptideml_results = channel.fromPath("${params.outdir}/autopeptideml")
+    merge_peptide_stats(peptides_results, deepsig_results, blastp_results, genome_metadata, autopeptideml_results)
 
 }
 
@@ -305,31 +304,6 @@ process diamond_blastp {
     """
 }
 
-process merge_peptide_stats {
-    tag "merge_peptide_stats"
-    publishDir "${params.outdir}/main_results/peptide_stats", mode: 'copy'
-
-    memory = "10 GB"
-    cpus = 1
-
-    container "public.ecr.aws/csgenetics/tidyverse:latest"
-    conda "envs/tidyverse.yml"
-
-    input:
-    path(peptides_info_tsv)
-    path(deepsig_tsv)
-    path(blastp_hits_tsv)
-    path(genome_metadata)
-
-    output:
-    path("all_peptide_stats.tsv"), emit: all_peptide_stats
-
-    script:
-    """
-    Rscript ${baseDir}/bin/merge_peptide_stats.R ${peptides_info_tsv} ${deepsig_tsv} ${blastp_hits_tsv} ${genome_metadata} all_peptide_stats.tsv
-    """
-}
-
 process autopeptideml_predictions {
     tag "${model_name}_autopeptideml"
     publishDir "${params.outdir}/autopeptideml", mode: 'copy'
@@ -353,5 +327,31 @@ process autopeptideml_predictions {
         --model_folder "${model_dir}/${model_name}/ensemble" \\
         --model_name ${model_name} \\
         --output_tsv "autopeptideml_${model_name}.tsv"
+    """
+}
+
+process merge_peptide_stats {
+    tag "merge_peptide_stats"
+    publishDir "${params.outdir}/main_results/peptide_stats", mode: 'copy'
+
+    memory = "10 GB"
+    cpus = 1
+
+    container "public.ecr.aws/csgenetics/tidyverse:latest"
+    conda "envs/tidyverse.yml"
+
+    input:
+    path(peptides_info_tsv)
+    path(deepsig_tsv)
+    path(blastp_hits_tsv)
+    path(genome_metadata)
+    path(autopeptideml_results_dir)
+
+    output:
+    path("all_peptide_stats.tsv"), emit: all_peptide_stats
+
+    script:
+    """
+    Rscript ${baseDir}/bin/merge_peptide_stats.R ${peptides_info_tsv} ${deepsig_tsv} ${blastp_hits_tsv} ${genome_metadata} ${autopeptideml_results_dir} all_peptide_stats.tsv
     """
 }
