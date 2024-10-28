@@ -52,7 +52,7 @@ all_peptide_info_metadata <- left_join(deepsig_info, peptides_info)  %>%
     mutate(mag_id = str_extract(peptide_id, "^.*?(?=_id_)"))  %>% 
     left_join(genome_metadata)  %>% 
     left_join(autopeptideml_df)  %>% 
-    select(mag_id, peptide_id, everything())
+    select(mag_id, peptide_id, sequence, everything())
 
 # write to tsv
 write_tsv(all_peptide_info_metadata, output_tsv)

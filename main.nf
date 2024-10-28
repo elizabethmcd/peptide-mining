@@ -77,7 +77,7 @@ workflow {
     autopeptideml_predictions(model_combos_ch)
 
     // merge peptide stats from peptides.py, deepsig, blastp results, and autopeptideml results
-    autopeptideml_results = channel.fromPath("${params.outdir}/autopeptideml")
+    autopeptideml_results = autopeptideml_predictions.out.autopeptideml_tsv.collect()
     merge_peptide_stats(peptides_results, deepsig_results, blastp_results, genome_metadata, autopeptideml_results)
 
 }
@@ -345,13 +345,13 @@ process merge_peptide_stats {
     path(deepsig_tsv)
     path(blastp_hits_tsv)
     path(genome_metadata)
-    path(autopeptideml_results_dir)
+    path("autopeptideml_*.tsv")
 
     output:
     path("all_peptide_stats.tsv"), emit: all_peptide_stats
 
     script:
     """
-    Rscript ${baseDir}/bin/merge_peptide_stats.R ${peptides_info_tsv} ${deepsig_tsv} ${blastp_hits_tsv} ${genome_metadata} ${autopeptideml_results_dir} all_peptide_stats.tsv
+    Rscript ${baseDir}/bin/merge_peptide_stats.R ${peptides_info_tsv} ${deepsig_tsv} ${blastp_hits_tsv} ${genome_metadata} ./ all_peptide_results.tsv
     """
 }
