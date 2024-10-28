@@ -332,7 +332,7 @@ process autopeptideml_predictions {
 
 process merge_peptide_stats {
     tag "merge_peptide_stats"
-    publishDir "${params.outdir}/main_results/peptide_stats", mode: 'copy'
+    publishDir "${params.outdir}/main_results/peptide_reuslts", mode: 'copy'
 
     memory = "10 GB"
     cpus = 1
@@ -348,7 +348,7 @@ process merge_peptide_stats {
     path("autopeptideml_*.tsv")
 
     output:
-    path("all_peptide_stats.tsv"), emit: all_peptide_stats
+    path("all_peptide_results.tsv"), emit: all_peptide_results
 
     script:
     """
