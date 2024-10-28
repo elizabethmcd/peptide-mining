@@ -8,7 +8,7 @@ The main input is a directory of bacterial genomes in FASTA format. The workflow
 
 The pipeline can be run with either conda or docker using the `-profile` flag. All input genomes in the input directory should end in `.fa`. 
 
-Importantly, the workflow does not handle automatic downloading of databases, so these need to be prepared beforehand and input as parameters to the workflow. 
+Importantly, the workflow does not handle automatic downloading of databases, so these need to be prepared beforehand and input as parameters to the workflow. See below for preparing databases and examples of publicly available databases for download.
 
 ```
 nextflow run main.nf \\
@@ -21,3 +21,7 @@ nextflow run main.nf \\
 --threads <THREADS> \\
 -profile <docker|conda>
 ```
+
+## Databases
+
+The main external databases that are provided to this workflow are sequences of known peptides and machine-learning classification models for predicting bioactivity. We curated sets of peptide sequences from [Peptipedia](https://app.peptipedia.cl/) and used bioactivity classification models from [AutoPeptideML], which are available on [Zenodo](https://zenodo.org/records/13363975). You can provide any input set of peptide sequences as long as they are in FASTA format. By providing a TXT file of the list of models you want to perform bioactivity searches, you can select certain models or all models available through AutoPeptideML, or additionally your own models that you made. 

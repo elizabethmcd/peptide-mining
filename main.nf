@@ -28,7 +28,7 @@ genome_fastas = Channel.fromPath("${params.input_genomes}/*.fa")
 
 genome_metadata = channel.fromPath(params.genome_metadata)
 peptide_models_dir = channel.fromPath(params.models_dir)
-peptide_models_list = channel.fromPath(params.model_list)
+peptide_models_list = channel.fromPath(params.models_list)
     .splitText()
     .map { it.trim() }
 peptides_db_ch = channel.fromPath(params.peptides_fasta)
