@@ -347,8 +347,8 @@ process autopeptideml_predictions {
     """
     python3 ${baseDir}/bin/run_autopeptideml.py \\
         --input_fasta ${peptides_fasta} \\
-        --model_folder ${model_dir} \\
-        --model_name "${model_name}/ensemble" \\
+        --model_folder "${model_dir}/${model_name}/ensemble" \\
+        --model_name ${model_name} \\
         --output_tsv "autopeptideml_${model_name}.tsv"
     """
 }
