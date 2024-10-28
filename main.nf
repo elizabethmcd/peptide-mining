@@ -75,9 +75,11 @@ workflow {
     merge_peptide_stats(peptides_results, deepsig_results, blastp_results, genome_metadata)
 
     // autopeptideml predictions
-    model_combos_ch = nonredundant_smorfs.combine(peptide_models_list)
+    model_combos_ch = nonredundant_smorfs
+        .combine(peptide_models_dir)
+        .combine(peptide_models_list)
     model_combos_ch.view()
-    autopeptideml_predictions(peptide_models_dir, model_combos_ch)
+    autopeptideml_predictions(model_combos_ch)
 
 }
 
@@ -339,8 +341,7 @@ process autopeptideml_predictions {
     conda "envs/autopeptideml"
 
     input:
-    path(model_dir)
-    tuple path(peptides_fasta), val(model_name)
+    tuple path(peptides_fasta), path(model_dir), val(model_name)
 
     output:
     path("*.tsv"), emit: autopeptideml_tsv
