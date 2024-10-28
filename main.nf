@@ -332,7 +332,7 @@ process autopeptideml_predictions {
 
 process merge_peptide_stats {
     tag "merge_peptide_stats"
-    publishDir "${params.outdir}/main_results/peptide_reuslts", mode: 'copy'
+    publishDir "${params.outdir}/main_results/peptide_results", mode: 'copy'
 
     memory = "10 GB"
     cpus = 1
