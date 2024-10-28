@@ -40,8 +40,18 @@ genome_metadata <- read_tsv(genome_metadata)  %>%
 autopeptideml_files <- list.files(path = autopeptideml_dir, pattern = "autopeptideml_.*\\.tsv$", full.names=TRUE)
 
 autopeptideml_df <- map_dfr(autopeptideml_files, function(file) {
-    read_tsv(file)
-})
+    read_tsv(file) %>%
+        # Rename the third column to 'value' and get bioactivity name from column name
+        rename(bioactivity = 3) %>%
+        # Add column for bioactivity name (original column name)
+        mutate(bioactivity_name = names(read_tsv(file))[3])
+}) %>%
+    # Pivot wider to get one column per bioactivity
+    pivot_wider(
+        id_cols = c(peptide_id, sequence),
+        names_from = bioactivity_name,
+        values_from = bioactivity
+    )
 
 # merge peptides info with deepsig results
 # merge with diamond blastp results
