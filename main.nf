@@ -6,10 +6,14 @@
 log.info """\
 
 MINE PEPTIDES FROM BACTERIAL GENOMES AND PREDICT THEIR BIOACTIVITY.
+NOTE THAT THIS WORKFLOW DOES NOT HANDEL AUTOMATIC DOWNLOADING OF DATABASES.
+YOU MUST PREPARE AND INPUT DATABASES FOR PEPTIDE SEQUENCES AND ML MODELS.
 =================================================================
 input_genomes                   : $params.input_genomes
 genome_metadata                 : $params.genome_metadata
 peptides_fasta                  : $params.peptides_fasta
+models_dir                      : $params.models_dir
+models_list                     : $params.models_list
 outdir                          : $params.outdir
 threads                         : $params.threads
 """
@@ -23,6 +27,10 @@ genome_fastas = Channel.fromPath("${params.input_genomes}/*.fa")
     }
 
 genome_metadata = channel.fromPath(params.genome_metadata)
+peptide_models_dir = channel.fromPath(params.models_dir)
+peptide_models_list = channel.fromPath(params.model_list)
+    .splitText()
+    .map { it.trim() }
 peptides_db_ch = channel.fromPath(params.peptides_fasta)
 
 // workflow steps
@@ -66,6 +74,7 @@ workflow {
     merge_peptide_stats(peptides_results, deepsig_results, blastp_results, genome_metadata)
 
     // autopeptideml predictions
+    autopeptideml_predictions(peptide_models_dir, peptide_models_list, nonredundant_smorfs)
 
 }
 
@@ -313,5 +322,33 @@ process merge_peptide_stats {
     script:
     """
     Rscript ${baseDir}/bin/merge_peptide_stats.R ${peptides_info_tsv} ${deepsig_tsv} ${blastp_hits_tsv} ${genome_metadata} all_peptide_stats.tsv
+    """
+}
+
+process autopeptideml_predictions {
+    tag "${model_name}_autopeptideml"
+    publishDir "${params.outdir}/autopeptideml", mode: 'copy'
+
+    memory = "10 GB"
+    cpus = 6
+
+    container "elizabethmcd/autopeptideml:latest"
+    conda "envs/autopeptideml"
+
+    input:
+    path(model_dir)
+    path(model_name)
+    path(peptides_fasta)
+
+    output:
+    path("*.tsv"), emit: autopeptideml_tsv
+
+    script:
+    """
+    python3 ${baseDir}/bin/run_autopeptideml.py \\
+        --input_fasta ${peptides_fasta} \\
+        --model_folder ${model_dir} \\
+        --model_name ${model_name} \\
+        --output_tsv "autopeptideml_${model_name}.tsv"
     """
 }

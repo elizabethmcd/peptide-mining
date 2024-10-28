@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # pip install package dependencies
-RUN pip install scikit-learn=1.3.0 biopython=1.83 pandas
+RUN pip install scikit-learn==1.3.0 biopython==1.83 pandas
 
 # pip install autopeptideml
 RUN pip install autopeptideml

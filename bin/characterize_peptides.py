@@ -5,7 +5,7 @@ import peptides
 from Bio import SeqIO
 
 """
-This script is from the Arcadia-Science/peptigate pipeline for using the pepitdes.py package.
+This script is from the Arcadia-Science/peptigate pipeline for using the peptides.py package.
 See https://github.com/Arcadia-Science/peptigate/blob/main/scripts/characterize_peptides.py for original source code.
 """
 
