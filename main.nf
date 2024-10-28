@@ -329,7 +329,7 @@ process autopeptideml_predictions {
     tag "${model_name}_autopeptideml"
     publishDir "${params.outdir}/autopeptideml", mode: 'copy'
 
-    memory = "10 GB"
+    memory = "20 GB"
     cpus = 6
 
     container "elizabethmcd/autopeptideml:latest"
