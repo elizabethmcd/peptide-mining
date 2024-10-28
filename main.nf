@@ -337,7 +337,7 @@ process autopeptideml_predictions {
 
     input:
     path(model_dir)
-    path(model_name)
+    val(model_name)
     path(peptides_fasta)
 
     output:
