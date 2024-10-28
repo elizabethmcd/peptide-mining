@@ -115,7 +115,7 @@ process smorfinder {
     conda "envs/smorfinder.yml"
 
     input:
-    tuple path(fasta), val(genome_name)
+    tuple path(genome_name), val(fasta)
 
     output:
     path("*.gff"), emit: gff_file
