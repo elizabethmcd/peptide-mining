@@ -39,7 +39,7 @@ genome_metadata <- read_tsv(genome_metadata)  %>%
 
 autopeptideml_files <- list.files(path = autopeptideml_dir, pattern = "autopeptideml_.*\\.tsv$", full.names=TRUE)
 
-autopeptideml_results <- map_dfr(autopeptideml_files, function(file) {
+autopeptideml_df <- map_dfr(autopeptideml_files, function(file) {
     read_tsv(file)
 })
 
