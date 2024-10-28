@@ -31,6 +31,7 @@ peptide_models_dir = channel.fromPath(params.models_dir)
 peptide_models_list = channel.fromPath(params.models_list)
     .splitText()
     .map { it.trim() }
+peptide_models_list.view()
 peptides_db_ch = channel.fromPath(params.peptides_fasta)
 
 // workflow steps
@@ -75,6 +76,7 @@ workflow {
 
     // autopeptideml predictions
     model_combos_ch = nonredundant_smorfs.combine(peptide_models_list)
+    model_combos_ch.view()
     autopeptideml_predictions(peptide_models_dir, model_combos_ch)
 
 }
