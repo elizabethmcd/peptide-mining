@@ -28,7 +28,8 @@ deepsig_info <- read_tsv(deep_sig_tsv, col_names = c("peptide_id",
                                                     "deepsig_feature_score",
                                                     "tmp1",
                                                     "tmp2",
-                                                    "deepsig_description"))
+                                                    "deepsig_description"))  %>% 
+                select(-tool, -tmp1, -tmp2)
 
 diamond_blast_results <- read_tsv(diamond_tsv)  %>% 
     mutate(peptide_id = qseqid)  %>% 

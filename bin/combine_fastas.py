@@ -7,18 +7,25 @@ import argparse
 def get_genome_name(filename):
     return os.path.splitext(os.path.basename(filename))[0]
 
+def is_valid_sequence(seq):
+    # Check if sequence exists and isn't empty after stripping whitespace
+    return bool(str(seq).strip())
 
 def process_fasta_file(input_file, genome_name):
     new_records = {}
     with open(input_file, "r") as fasta_file:
         for record in SeqIO.parse(fasta_file, "fasta"):
+            # Skip records with empty sequences
+            if not is_valid_sequence(record.seq):
+                print(f"Warning: Skipping empty sequence for {record.id} in {genome_name}")
+                continue
+                
             # Remove trailing '*' if present
             if record.seq.endswith('*'):
                 record.seq = record.seq[:-1]
             record.id = f"{genome_name}_id_{record.id}"
             new_records[record.id] = record
     return new_records
-
 
 def combine_fastas(input_files, output_file):
     all_records = {}
@@ -27,8 +34,17 @@ def combine_fastas(input_files, output_file):
         new_records = process_fasta_file(input_file, genome_name)
         all_records.update(new_records)
 
+    # Final validation before writing
+    valid_records = []
+    for record_id, record in all_records.items():
+        if is_valid_sequence(record.seq):
+            valid_records.append(record)
+        else:
+            print(f"Warning: Removing record with empty sequence: {record_id}")
+
     with open(output_file, "w") as outfile:
-        SeqIO.write(all_records.values(), outfile, "fasta")
+        SeqIO.write(valid_records, outfile, "fasta")
+        print(f"Wrote {len(valid_records)} valid sequences to {output_file}")
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Rename FASTA headers for input files and concatenate to single FASTA')
@@ -39,7 +55,6 @@ def parse_arguments():
 def main():
     args = parse_arguments()
     combine_fastas(args.input_files, args.output_file)
-
 
 if __name__ == '__main__':
     main()
