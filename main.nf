@@ -48,13 +48,14 @@ workflow {
     nonredundant_smorfs = mmseqs_100id_cluster.out.nonredundant_seqs_fasta
 
     // all-v-all sequence identity comparisons of nonredundant peptides
+    mmseqs_all_vall(nonredudant_smorfs)
 
     // cluster smorf proteins 90% identity and get representative seqs
     mmseqs_90id_cluster(nonredundant_smorfs)
     clusters_90id_rep_seqs = mmseqs_90id_cluster.out.clusters_90id_rep_seqs_fasta
     clusters_90id_summary = mmseqs_90id_cluster.out.clusters_90id_summary_tsv
 
-    // summarize 90% identity clusters with metadata
+    // summarize 90% identity clusters with metadata for stats of counts among substrates
     summarize_mmseqs_clusters(clusters_90id_summary, clusters_90id_rep_seqs, genome_metadata)
 
     // deepsig predictions on combined, non-redundant smorf proteins
@@ -77,7 +78,7 @@ workflow {
         .combine(peptide_models_list)
     autopeptideml_predictions(model_combos_ch)
 
-    // merge peptide stats from peptides.py, deepsig, blastp results, and autopeptideml results
+    // merge peptide stats from peptides.py, deepsig, blastp results, and autopeptideml results along with the metadata into one TSV output
     autopeptideml_results = autopeptideml_predictions.out.autopeptideml_tsv.collect()
     merge_peptide_stats(peptides_results, deepsig_results, blastp_results, genome_metadata, autopeptideml_results)
 
@@ -183,6 +184,29 @@ process mmseqs_90id_cluster {
     """
     mmseqs easy-cluster ${protein_fasta_file} clusters_90id tmp --min-seq-id 0.9 --threads ${task.cpus}
     """   
+}
+
+process mmseqs_all_v_all {
+    tag "mmseqs_all_v_all"
+    publishDir "${params.outdir}/mmseqs_all_v_all", mode: 'copy'
+
+    memory = '20 GB'
+    cpus = 12
+
+    container "public.ecr.aws/biocontainers/mmseqs2:15.6f452--pl5321h6a68c12_2"
+    conda "envs/mmseqs2.yml"
+
+    input:
+    path(protein_fasta_file)
+
+    output:
+    path("*.tsv"), emit: mmseqs_easy_search_tsv
+
+    script:
+    """
+    mmseqs easy-search ${protein_fasta_file} ${protein_fasta_file} mmseqs-all-v-all-results.tsv tmp --threads ${task.cpus} --exhaustive-search
+
+    """
 }
 
 process summarize_mmseqs_clusters {
