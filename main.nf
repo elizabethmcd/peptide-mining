@@ -43,13 +43,19 @@ workflow {
     combine_smorf_proteins(smorf_proteins.collect())
     combined_smorf_proteins = combine_smorf_proteins.out.combined_smorf_proteins
 
-    // cluster smorf proteins 95% identity and get representative seqs
-    mmseqs_95id_cluster(combined_smorf_proteins)
-    nonredundant_smorfs = mmseqs_95id_cluster.out.nonredundant_seqs_fasta
-    mmseqs_clusters = mmseqs_95id_cluster.out.cluster_summary_tsv
+    // cluster smorf proteins at 100% identity to remove redundant seqs
+    mmseqs_100id_cluster(combined_smorf_proteins)
+    nonredundant_smorfs = mmseqs_100id_cluster.out.nonredundant_seqs_fasta
 
-    // mmseqs cluster summaries and stats, merging with metadata
-    summarize_mmseqs_clusters(mmseqs_clusters, nonredundant_smorfs, genome_metadata)
+    // all-v-all sequence identity comparisons of nonredundant peptides
+
+    // cluster smorf proteins 90% identity and get representative seqs
+    mmseqs_90id_cluster(nonredundant_smorfs)
+    clusters_90id_rep_seqs = mmseqs_90id_cluster.out.clusters_90id_rep_seqs_fasta
+    clusters_90id_summary = mmseqs_90id_cluster.out.clusters_90id_summary_tsv
+
+    // summarize 90% identity clusters with metadata
+    summarize_mmseqs_clusters(clusters_90id_summary, clusters_90id_rep_seqs, genome_metadata)
 
     // deepsig predictions on combined, non-redundant smorf proteins
     deepsig(nonredundant_smorfs)
@@ -133,9 +139,9 @@ process combine_smorf_proteins {
     
 }
 
-process mmseqs_95id_cluster {
-    tag "mmseqs_95id_cluster"
-    publishDir "${params.outdir}/mmseqs_95id_cluster", mode: 'copy'
+process mmseqs_100id_cluster {
+    tag "mmseqs_100id_cluster"
+    publishDir "${params.outdir}/mmseqs_100id_cluster", mode: 'copy'
 
     memory = '10 GB'
     cpus = 8
@@ -148,11 +154,34 @@ process mmseqs_95id_cluster {
     
     output:
     path("*_rep_seq.fasta"), emit: nonredundant_seqs_fasta
-    path("*.tsv"), emit: cluster_summary_tsv
+    path("*.tsv"), emit: clusters_100id_summary_tsv
 
     script:
     """
-    mmseqs easy-cluster ${protein_fasta_file} nonredundant_smorf_proteins tmp --min-seq-id 0.95 --threads ${task.cpus}
+    mmseqs easy-cluster ${protein_fasta_file} nonredundant_smorf_proteins tmp --min-seq-id 1 --threads ${task.cpus}
+    """   
+}
+
+process mmseqs_90id_cluster {
+    tag "mmseqs_90id_cluster"
+    publishDir "${params.outdir}/mmseqs_90id_cluster", mode: 'copy'
+
+    memory = '10 GB'
+    cpus = 8
+    
+    container "public.ecr.aws/biocontainers/mmseqs2:15.6f452--pl5321h6a68c12_2"
+    conda "envs/mmseqs2.yml"
+
+    input:
+    path(protein_fasta_file)
+    
+    output:
+    path("*_rep_seq.fasta"), emit: clusters_90id_rep_seqs_fasta
+    path("*.tsv"), emit: clusters_90id_summary_tsv
+
+    script:
+    """
+    mmseqs easy-cluster ${protein_fasta_file} clusters_90id tmp --min-seq-id 0.9 --threads ${task.cpus}
     """   
 }
 
