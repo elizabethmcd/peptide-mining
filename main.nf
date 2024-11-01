@@ -43,15 +43,12 @@ workflow {
     combine_smorf_proteins(smorf_proteins.collect())
     combined_smorf_proteins = combine_smorf_proteins.out.combined_smorf_proteins
 
-    // cluster smorf proteins at 100% identity to remove redundant seqs
-    mmseqs_100id_cluster(combined_smorf_proteins)
-    nonredundant_smorfs = mmseqs_100id_cluster.out.nonredundant_seqs_fasta
-
     // all-v-all sequence identity comparisons of nonredundant peptides
-    mmseqs_all_vall(nonredudant_smorfs)
+    mmseqs_all_vall(combined_smorf_proteins)
+    mmseqs_all_v_all_tsv = mmseqs_all_v_all.out.mmseqs_easy_search_tsv
 
     // cluster smorf proteins 90% identity and get representative seqs
-    mmseqs_90id_cluster(nonredundant_smorfs)
+    mmseqs_90id_cluster(combined_smorf_proteins)
     clusters_90id_rep_seqs = mmseqs_90id_cluster.out.clusters_90id_rep_seqs_fasta
     clusters_90id_summary = mmseqs_90id_cluster.out.clusters_90id_summary_tsv
 
@@ -59,21 +56,21 @@ workflow {
     summarize_mmseqs_clusters(clusters_90id_summary, clusters_90id_rep_seqs, genome_metadata)
 
     // deepsig predictions on combined, non-redundant smorf proteins
-    deepsig(nonredundant_smorfs)
+    deepsig(combined_smorf_proteins)
     deepsig_results = deepsig.out.deepsig_tsv
 
     // peptides.py sequence characterization on combined, non-redundant smorf proteins
-    characterize_peptides(nonredundant_smorfs)
+    characterize_peptides(combined_smorf_proteins)
     peptides_results = characterize_peptides.out.peptides_tsv
 
     // DIAMOND seq similarity to Peptipedia peptide sequences of interest
     make_diamond_db(peptides_db_ch)
     peptides_dmnd_db = make_diamond_db.out.peptides_diamond_db
-    diamond_blastp(nonredundant_smorfs, peptides_dmnd_db)
+    diamond_blastp(combined_smorf_proteins, peptides_dmnd_db)
     blastp_results = diamond_blastp.out.blastp_hits_tsv
 
     // autopeptideml predictions
-    model_combos_ch = nonredundant_smorfs
+    model_combos_ch = combined_smorf_proteins
         .combine(peptide_models_dir)
         .combine(peptide_models_list)
     autopeptideml_predictions(model_combos_ch)
@@ -138,29 +135,6 @@ process combine_smorf_proteins {
     python ${baseDir}/bin/combine_fastas.py ${smorf_proteins.join(' ')} combined_smorf_proteins.fasta
     """
     
-}
-
-process mmseqs_100id_cluster {
-    tag "mmseqs_100id_cluster"
-    publishDir "${params.outdir}/mmseqs_100id_cluster", mode: 'copy'
-
-    memory = '10 GB'
-    cpus = 8
-    
-    container "public.ecr.aws/biocontainers/mmseqs2:15.6f452--pl5321h6a68c12_2"
-    conda "envs/mmseqs2.yml"
-
-    input:
-    path(protein_fasta_file)
-    
-    output:
-    path("*_rep_seq.fasta"), emit: nonredundant_seqs_fasta
-    path("*.tsv"), emit: clusters_100id_summary_tsv
-
-    script:
-    """
-    mmseqs easy-cluster ${protein_fasta_file} nonredundant_smorf_proteins tmp --min-seq-id 1 --threads ${task.cpus}
-    """   
 }
 
 process mmseqs_90id_cluster {
