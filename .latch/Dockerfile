@@ -1,5 +1,5 @@
 # DO NOT CHANGE
-from 812206152185.dkr.ecr.us-west-2.amazonaws.com/latch-base-nextflow:v2.3.0
+from 812206152185.dkr.ecr.us-west-2.amazonaws.com/latch-base-nextflow:v2.3.3
 
 workdir /tmp/docker-build/work/
 
