@@ -44,7 +44,7 @@ workflow {
     combined_smorf_proteins = combine_smorf_proteins.out.combined_smorf_proteins
 
     // all-v-all sequence identity comparisons of nonredundant peptides
-    mmseqs_all_vall(combined_smorf_proteins)
+    mmseqs_all_v_all(combined_smorf_proteins)
     mmseqs_all_v_all_tsv = mmseqs_all_v_all.out.mmseqs_easy_search_tsv
 
     // cluster smorf proteins 90% identity and get representative seqs
