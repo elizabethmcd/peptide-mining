@@ -201,12 +201,10 @@ process summarize_mmseqs_clusters {
     output:
     path("mmseqs_summary.tsv"), emit: mmseqs_summary
     path("mmseqs_metadata.tsv"), emit: mmseqs_metadata
-    path("mmseqs_substrate_counts.tsv"), emit: mmseqs_substrate_counts
-    path("mmseqs_phylo_groups_counts.tsv"), emit: mmseqs_phylo_groups_counts
 
     script:
     """
-    python ${baseDir}/bin/process_mmseqs_clusters.py ${mmseqs_cluster_file} ${mmseqs_nonredundant_seqs} ${genome_metadata_tsv} mmseqs_summary.tsv mmseqs_metadata.tsv mmseqs_substrate_counts.tsv mmseqs_phylo_groups_counts.tsv
+    python ${baseDir}/bin/process_mmseqs_clusters.py ${mmseqs_cluster_file} ${mmseqs_nonredundant_seqs} ${genome_metadata_tsv} mmseqs_summary.tsv mmseqs_metadata.tsv
     """ 
 }
 

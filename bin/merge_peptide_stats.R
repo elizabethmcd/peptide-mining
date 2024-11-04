@@ -35,8 +35,7 @@ diamond_blast_results <- read_tsv(diamond_tsv)  %>%
     mutate(peptide_id = qseqid)  %>% 
     select(-qseqid)
 
-genome_metadata <- read_tsv(genome_metadata)  %>% 
-    select(mag_id, substrate, species, group)
+genome_metadata <- read_tsv(genome_metadata)
 
 autopeptideml_files <- list.files(path = autopeptideml_dir, pattern = "autopeptideml_.*\\.tsv$", full.names=TRUE)
 
