@@ -27,8 +27,7 @@ def create_summary_df(cluster_summary):
 
 def merge_metadata(cluster_df, metadata_df):
     cluster_df['mag_id'] = cluster_df['protein_id'].str.split('_id_', expand=True)[0]
-    return pd.merge(cluster_df, metadata_df[['mag_id', 'substrate', 'species', 'group']], 
-                   left_on='mag_id', right_on='mag_id', how='left')
+    return pd.merge(cluster_df, metadata_df, left_on='mag_id', right_on='mag_id', how='left')
 
 def main(cluster_file, fasta_file, metadata_file, output_summary, output_merged):
     # Load data
@@ -43,9 +42,7 @@ def main(cluster_file, fasta_file, metadata_file, output_summary, output_merged)
     
     # Save outputs
     summary_df.to_csv(output_summary, sep='\t', index=False)
-    merged_df[['cluster_name', 'protein_id', 'substrate', 'species', 'group']].to_csv(
-        output_merged, sep='\t', index=False
-    )
+    merged_df.to_csv(output_merged, sep='\t', index=False)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Process clusters and metadata")
