@@ -39,21 +39,17 @@ workflow {
     smorfinder(genome_fastas)
     smorf_proteins = smorfinder.out.faa_file
 
-    // combine smorf proteins into a single FASTA
-    combine_smorf_proteins(smorf_proteins.collect())
+    // combine smorf proteins into a single FASTA and food-specific split FASTAs
+    combine_smorf_proteins(smorf_proteins.collect(), genome_metadata)
     combined_smorf_proteins = combine_smorf_proteins.out.combined_smorf_proteins
+    food_split_smorf_proteins = combine_smorf_proteins.out.split_smorf_proteins
 
-    // all-v-all sequence identity comparisons of nonredundant peptides
-    mmseqs_all_v_all(combined_smorf_proteins)
-    mmseqs_all_v_all_tsv = mmseqs_all_v_all.out.mmseqs_easy_search_tsv
-
-    // cluster smorf proteins 90% identity and get representative seqs
-    mmseqs_90id_cluster(combined_smorf_proteins)
-    clusters_90id_rep_seqs = mmseqs_90id_cluster.out.clusters_90id_rep_seqs_fasta
-    clusters_90id_summary = mmseqs_90id_cluster.out.clusters_90id_summary_tsv
-
-    // summarize 90% identity clusters with metadata for stats of counts among substrates
-    summarize_mmseqs_clusters(clusters_90id_summary, clusters_90id_rep_seqs, genome_metadata)
+    // cluster food-specific proteins at 50% identity to reduce redundancy for oversampled foods and complexity of overall dataset
+    mmseqs_50id_cluster(food_split_smorf_proteins)
+    clustered_protein_sets = mmseqs_50id_cluster.out.rep_seqs.collect()
+    
+    // all-v-all sequence identity comparisons of clustered proteins
+    mmseqs_all_v_all(clustered_protein_sets)
 
     // deepsig predictions on combined, non-redundant smorf proteins
     deepsig(combined_smorf_proteins)
@@ -126,20 +122,22 @@ process combine_smorf_proteins {
 
     input:
     path(smorf_proteins)
+    path(metadata_tsv)
 
     output: 
-    path("*.fasta"), emit: combined_smorf_proteins
+    path("combined_smorf_proteins.fasta"), emit: combined_smorf_proteins
+    path("*.split.fasta"), emit: split_smorf_proteins
 
     script:
     """
-    python ${baseDir}/bin/combine_fastas.py ${smorf_proteins.join(' ')} combined_smorf_proteins.fasta
+    python ${baseDir}/bin/combine_fastas.py ${smorf_proteins.join(' ')} combined_smorf_proteins.fasta ${metadata_tsv} ./
     """
     
 }
 
-process mmseqs_90id_cluster {
-    tag "mmseqs_90id_cluster"
-    publishDir "${params.outdir}/mmseqs_90id_cluster", mode: 'copy'
+process mmseqs_50id_cluster {
+    tag "mmseqs_50id_cluster"
+    publishDir "${params.outdir}/mmseqs_50id_cluster", mode: 'copy'
 
     memory = '10 GB'
     cpus = 8
@@ -151,12 +149,13 @@ process mmseqs_90id_cluster {
     path(protein_fasta_file)
     
     output:
-    path("*_rep_seq.fasta"), emit: clusters_90id_rep_seqs_fasta
-    path("*.tsv"), emit: clusters_90id_summary_tsv
+    path("*_rep_seq.fasta"), emit: rep_seqs
+    path("*.tsv"), emit: clusters_tsv
 
     script:
+    def substrate = protein_fasta_file.baseName
     """
-    mmseqs easy-cluster ${protein_fasta_file} clusters_90id tmp --min-seq-id 0.9 --threads ${task.cpus}
+    mmseqs easy-cluster ${protein_fasta_file} ${substrate} tmp --min-seq-id 0.5 -c 0.8 --threads ${task.cpus}
     """   
 }
 
@@ -171,41 +170,18 @@ process mmseqs_all_v_all {
     conda "envs/mmseqs2.yml"
 
     input:
-    path(protein_fasta_file)
+    path("*_rep_seq.fasta")
 
     output:
+    path("combined_representative_sequences.fasta"), emit: combined_representative_sequences
     path("*.tsv"), emit: mmseqs_easy_search_tsv
 
     script:
     """
-    mmseqs easy-search ${protein_fasta_file} ${protein_fasta_file} mmseqs-all-v-all-results.tsv tmp --threads ${task.cpus} --exhaustive-search
+    cat *_rep_seq.fasta > combined_representative_sequences.fasta
+    mmseqs easy-search combined_representative_sequences.fasta combined_representative_sequences.fasta mmseqs-all-v-all-results.tsv tmp --threads ${task.cpus} --exhaustive-search
 
     """
-}
-
-process summarize_mmseqs_clusters {
-    tag "summarize_mmseqs_clusters"
-    publishDir "${params.outdir}/main_results/mmseqs_clusters", mode: 'copy'
-
-    memory = "10 GB"
-    cpus = 1
-
-    container "quay.io/biocontainers/mulled-v2-949aaaddebd054dc6bded102520daff6f0f93ce6:aa2a3707bfa0550fee316844baba7752eaab7802-0"
-    conda "envs/biopython.yml"
-
-    input:
-    path(mmseqs_cluster_file)
-    path(mmseqs_nonredundant_seqs)
-    path(genome_metadata_tsv)
-
-    output:
-    path("mmseqs_summary.tsv"), emit: mmseqs_summary
-    path("mmseqs_metadata.tsv"), emit: mmseqs_metadata
-
-    script:
-    """
-    python ${baseDir}/bin/process_mmseqs_clusters.py ${mmseqs_cluster_file} ${mmseqs_nonredundant_seqs} ${genome_metadata_tsv} mmseqs_summary.tsv mmseqs_metadata.tsv
-    """ 
 }
 
 process deepsig {
