@@ -133,7 +133,10 @@ process combine_smorf_proteins {
 
     script:
     """
-    python ${baseDir}/bin/combine_fastas.py ${smorf_proteins.join(' ')} combined_smorf_proteins.fasta ${metadata_tsv} ./
+    python ${baseDir}/bin/combine_fastas.py ${smorf_proteins.join(' ')} \\
+    --output_file combined_smorf_proteins.fasta \\
+    --metadata ${metadata_tsv} \\
+    --split_dir ./
     """
     
 }
