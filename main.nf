@@ -6,8 +6,8 @@
 log.info """\
 
 MINE PEPTIDES FROM BACTERIAL GENOMES AND PREDICT THEIR BIOACTIVITY.
-NOTE THAT THIS WORKFLOW DOES NOT HANDEL AUTOMATIC DOWNLOADING OF DATABASES.
-YOU MUST PREPARE AND INPUT DATABASES FOR PEPTIDE SEQUENCES AND ML MODELS.
+NOTE THAT THIS WORKFLOW DOES NOT HANDLE AUTOMATIC DOWNLOADING OF DATABASES.
+YOU MUST INPUT PRE-PREPPED DATABASES FOR PEPTIDE SEQUENCES AND ML MODELS.
 =================================================================
 input_genomes                   : $params.input_genomes
 genome_metadata                 : $params.genome_metadata
@@ -25,12 +25,15 @@ genome_fastas = Channel.fromPath("${params.input_genomes}/*.fa")
         def baseName = file.getBaseName()
         return [baseName, file]
     }
-
+// metadata TSV
 genome_metadata = channel.fromPath(params.genome_metadata)
+// directory with peptide models
 peptide_models_dir = channel.fromPath(params.models_dir)
+// TXT file containing list of which models to run
 peptide_models_list = channel.fromPath(params.models_list)
     .splitText()
     .map { it.trim() }
+// database of peptides to compare against
 peptides_db_ch = channel.fromPath(params.peptides_fasta)
 
 // workflow steps
@@ -59,7 +62,7 @@ workflow {
     characterize_peptides(combined_smorf_proteins)
     peptides_results = characterize_peptides.out.peptides_tsv
 
-    // DIAMOND seq similarity to Peptipedia peptide sequences of interest
+    // DIAMOND seq similarity to peptide database with known bioactivities
     make_diamond_db(peptides_db_ch)
     peptides_dmnd_db = make_diamond_db.out.peptides_diamond_db
     diamond_blastp(combined_smorf_proteins, peptides_dmnd_db)
@@ -272,7 +275,6 @@ process diamond_blastp {
      -q ${faa_file} \\
      -o nonredundant_smorf_proteins_blast_results.tsv \\
      --header simple \\
-     --max-target-seqs 1 \\
     --outfmt 6 qseqid sseqid full_sseq pident length qlen slen mismatch gapopen qstart qend sstart send evalue bitscore
     """
 }
