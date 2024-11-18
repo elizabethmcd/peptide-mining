@@ -189,7 +189,7 @@ process summarize_clusters {
     python ${baseDir}/bin/process_mmseqs_clusters.py \\
         --cluster_files *_cluster.tsv \\
         --fasta_files *_rep_seq.fasta \\
-        --output cluster_summary.tsv
+        --output clusters_summary.tsv
     """
 }
 
