@@ -84,7 +84,7 @@ def combine_fastas(input_files, output_file, metadata_file=None, split_dir=None)
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Rename FASTA headers for input files and concatenate to single FASTA')
     parser.add_argument('input_files', nargs='+', help='Input FASTA files')
-    parser.add_argument('output_file', help='Output concatenated FASTA file')
+    parser.add_argument('--output_file', help='Output concatenated FASTA file')
     parser.add_argument('--metadata', help='Metadata TSV file with mag_id and fermented_food columns')
     parser.add_argument('--split_dir', help='Directory to output food-specific FASTA files')
     return parser.parse_args()
