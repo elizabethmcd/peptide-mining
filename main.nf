@@ -46,6 +46,7 @@ workflow {
     combine_smorf_proteins(smorf_proteins.collect(), genome_metadata)
     combined_smorf_proteins = combine_smorf_proteins.out.combined_smorf_proteins
     food_split_smorf_proteins = combine_smorf_proteins.out.split_smorf_proteins
+        .flatten() // convert list of files to channel of individual files
 
     // cluster food-specific proteins at 50% identity to reduce redundancy for oversampled foods and complexity of overall dataset
     mmseqs_50id_cluster(food_split_smorf_proteins)
@@ -159,7 +160,7 @@ process mmseqs_50id_cluster {
     path("*.tsv"), emit: clusters_tsv
 
     script:
-    def substrate = protein_fasta_file.baseName
+    def substrate = protein_fasta_file.simpleName
     """
     mmseqs easy-cluster ${protein_fasta_file} ${substrate} tmp --min-seq-id 0.5 -c 0.8 --threads ${task.cpus}
     """   
