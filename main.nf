@@ -51,6 +51,10 @@ workflow {
     // cluster food-specific proteins at 50% identity to reduce redundancy for oversampled foods and complexity of overall dataset
     mmseqs_50id_cluster(food_split_smorf_proteins)
     clustered_protein_sets = mmseqs_50id_cluster.out.rep_seqs.collect()
+    cluster_files = mmseqs_50id_cluster.out.clusters_tsv.collect()
+
+    // summarize clusters
+    summarize_clusters(cluster_files, clustered_protein_sets)
     
     // all-v-all sequence identity comparisons of clustered proteins
     mmseqs_all_v_all(clustered_protein_sets)
@@ -164,6 +168,29 @@ process mmseqs_50id_cluster {
     """
     mmseqs easy-cluster ${protein_fasta_file} ${substrate} tmp --min-seq-id 0.5 -c 0.8 --threads ${task.cpus}
     """   
+}
+
+process summarize_clusters {
+    tag "summarize_clusters"
+    publishDir "${params.outdir}/main_results/cluster_summaries", mode: 'copy'
+    
+    container "quay.io/biocontainers/mulled-v2-949aaaddebd054dc6bded102520daff6f0f93ce6:aa2a3707bfa0550fee316844baba7752eaab7802-0"
+    conda "envs/biopython.yml"
+    
+    input:
+    path("*_cluster.tsv")  // all cluster files in a list
+    path("*_rep_seq.fasta")  // all representative sequences in a list
+    
+    output:
+    path("clusters_summary.tsv"), emit: clusters_summary
+    
+    script:
+    """
+    python ${baseDir}/bin/process_mmseqs_clusters.py \
+        --cluster_files *_cluster.tsv \
+        --fasta_files *_rep_seq.fasta \
+        --output cluster_summary.tsv
+    """
 }
 
 process mmseqs_all_v_all {
