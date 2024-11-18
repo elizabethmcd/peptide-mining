@@ -306,6 +306,7 @@ process diamond_blastp {
      -q ${faa_file} \\
      -o nonredundant_smorf_proteins_blast_results.tsv \\
      --header simple \\
+     --max-target-seqs 1 \\
     --outfmt 6 qseqid sseqid full_sseq pident length qlen slen mismatch gapopen qstart qend sstart send evalue bitscore
     """
 }
