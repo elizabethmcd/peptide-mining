@@ -178,17 +178,17 @@ process summarize_clusters {
     conda "envs/biopython.yml"
     
     input:
-    path("*_cluster.tsv")  // all cluster files in a list
-    path("*_rep_seq.fasta")  // all representative sequences in a list
+    path(cluster_files)  // all cluster files in a list
+    path(rep_seq_files)  // all representative sequences in a list
     
     output:
     path("clusters_summary.tsv"), emit: clusters_summary
     
     script:
     """
-    python ${baseDir}/bin/process_mmseqs_clusters.py \
-        --cluster_files *_cluster.tsv \
-        --fasta_files *_rep_seq.fasta \
+    python ${baseDir}/bin/process_mmseqs_clusters.py \\
+        --cluster_files *_cluster.tsv \\
+        --fasta_files *_rep_seq.fasta \\
         --output cluster_summary.tsv
     """
 }
