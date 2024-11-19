@@ -35,6 +35,8 @@ peptide_models_list = channel.fromPath(params.models_list)
     .map { it.trim() }
 // database of peptides to compare against
 peptides_db_ch = channel.fromPath(params.peptides_fasta)
+// sequence identities for clustering
+seq_identities = [50, 60, 70, 80, 90, 100]
 
 // workflow steps
 workflow {
@@ -49,15 +51,25 @@ workflow {
         .flatten() // convert list of files to channel of individual files
 
     // cluster food-specific proteins at 50% identity to reduce redundancy for oversampled foods and complexity of overall dataset
-    mmseqs_50id_cluster(food_split_smorf_proteins)
-    clustered_protein_sets = mmseqs_50id_cluster.out.rep_seqs.collect()
-    cluster_files = mmseqs_50id_cluster.out.clusters_tsv.collect()
+    cluster_combinations_ch = food_split_smorf_proteins
+        .combine(Channel.from(seq_identities))
+    mmseqs_cluster(cluster_combinations_ch)
+    cluster_files_by_seq_id = mmseqs_cluster.out.clusters_tsv
+        .groupTuple()
+    rep_seqs_by_seq_id = mmseqs_cluster.out.rep_seqs
+        .groupTuple()
+    cluster_summary_inut = cluster_files_by_identity
+        .join(rep_seqs_by_identity)
 
     // summarize clusters
-    summarize_clusters(cluster_files, clustered_protein_sets)
+    summarize_clusters(cluster_summary_input)
     
     // all-v-all sequence identity comparisons of clustered proteins
-    mmseqs_all_v_all(clustered_protein_sets)
+    rep_seqs_50id = mmseqs_cluster.out.rep_seqs
+        .filter { seq_id, files -> seq_id == 50 }
+        .map { seq_id, files -> files }
+        .collect()
+    mmseqs_all_v_all(rep_seqs_50id)
 
     // deepsig predictions on combined, non-redundant smorf proteins
     deepsig(combined_smorf_proteins)
@@ -146,9 +158,9 @@ process combine_smorf_proteins {
     
 }
 
-process mmseqs_50id_cluster {
-    tag "mmseqs_50id_cluster"
-    publishDir "${params.outdir}/mmseqs_50id_cluster", mode: 'copy'
+process mmseqs_cluster {
+    tag "mmseqs_${seq_id}id_cluster"
+    publishDir "${params.outdir}/mmseqs_cluster_output/${seq_id}id_cluster_results", mode: 'copy'
 
     memory = '10 GB'
     cpus = 8
@@ -157,16 +169,16 @@ process mmseqs_50id_cluster {
     conda "envs/mmseqs2.yml"
 
     input:
-    path(protein_fasta_file)
+    tuple path(protein_fasta_file), val(seq_id)
     
     output:
-    path("*_rep_seq.fasta"), emit: rep_seqs
-    path("*.tsv"), emit: clusters_tsv
+    tuple val(seq_id), path("*_rep_seq.fasta"), emit: rep_seqs
+    tuple val(seq_id), path("*.tsv"), emit: clusters_tsv
 
     script:
     def substrate = protein_fasta_file.simpleName
     """
-    mmseqs easy-cluster ${protein_fasta_file} ${substrate} tmp --min-seq-id 0.5 -c 0.8 --threads ${task.cpus}
+    mmseqs easy-cluster ${protein_fasta_file} ${substrate} tmp --min-seq-id ${seq_id/100} -c 0.8 --threads ${task.cpus}
     """   
 }
 
@@ -178,18 +190,17 @@ process summarize_clusters {
     conda "envs/biopython.yml"
     
     input:
-    path(cluster_files)  // all cluster files in a list
-    path(rep_seq_files)  // all representative sequences in a list
+    tuple val(seq_id), path(cluster_files), path(rep_seq_files)
     
     output:
-    path("clusters_summary.tsv"), emit: clusters_summary
+    path("*.tsv"), emit: clusters_summary
     
     script:
     """
     python ${baseDir}/bin/process_mmseqs_clusters.py \\
         --cluster_files *_cluster.tsv \\
         --fasta_files *_rep_seq.fasta \\
-        --output clusters_summary.tsv
+        --output clusters_${seq_id}id_summary.tsv
     """
 }
 
