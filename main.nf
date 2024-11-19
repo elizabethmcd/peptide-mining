@@ -59,7 +59,7 @@ workflow {
     rep_seqs_by_seq_id = mmseqs_cluster.out.rep_seqs
         .groupTuple()
     cluster_summary_inut = cluster_files_by_seq_id
-        .join(rep_seqs_by_identity)
+        .join(rep_seqs_by_seq_id)
 
     // summarize clusters
     summarize_clusters(cluster_summary_input)
