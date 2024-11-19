@@ -34,6 +34,8 @@ def combine_fastas(input_files, output_file, metadata_file=None, split_dir=None)
     metadata = None
     if metadata_file:
         metadata = pd.read_csv(metadata_file, sep='\t')
+        # remove NAs
+        metadata = metadata.dropna(subset=['fermented_food'])
         # Create dictionary of mag_id to fermented_food
         food_map = dict(zip(metadata['mag_id'], metadata['fermented_food']))
         # Create directory for split files if needed
