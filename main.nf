@@ -12,6 +12,7 @@ YOU MUST INPUT PRE-PREPPED DATABASES FOR PEPTIDE SEQUENCES AND ML MODELS.
 input_genomes                   : $params.input_genomes
 genome_metadata                 : $params.genome_metadata
 peptides_fasta                  : $params.peptides_fasta
+kofam_db                        : $params.kofam_db_dir
 models_dir                      : $params.models_dir
 models_list                     : $params.models_list
 outdir                          : $params.outdir
@@ -35,6 +36,9 @@ peptide_models_list = channel.fromPath(params.models_list)
     .map { it.trim() }
 // database of peptides to compare against
 peptides_db_ch = channel.fromPath(params.peptides_fasta)
+// kofam KEGG database directory
+// contains both the ko_list file and profiles/ directory
+kofam_db_ch = channel.fromPath(params.kofam_db_dir)
 // sequence identities for clustering
 seq_identities = [50, 60, 70, 80, 90, 100]
 
@@ -90,6 +94,9 @@ workflow {
         .combine(peptide_models_dir)
         .combine(peptide_models_list)
     autopeptideml_predictions(model_combos_ch)
+
+    // kofamscan annotation
+    kofam_scan_annotation(combined_smorf_proteins, kofam_db_ch)
 
     // merge peptide stats from peptides.py, deepsig, blastp results, and autopeptideml results along with the metadata into one TSV output
     autopeptideml_results = autopeptideml_predictions.out.autopeptideml_tsv.collect()
@@ -348,6 +355,28 @@ process autopeptideml_predictions {
     """
 }
 
+process kofam_scan {
+    tag "kofam_scan_annotation"
+    publishDir "${params.outdir}/kofam_scan_annotation", mode: 'copy'
+
+    memory = "15 GB"
+    cpus = 6
+
+    container "public.ecr.aws/biocontainers/kofamscan:1.0.0--0"
+    conda "envs/kofamscan.yml"
+
+    input: 
+    path(peptides_fasta)
+    path(kegg_db_dir)
+
+    output: 
+    path("*.tsv"), emit: kofamscan_tsv
+
+    script:
+    """
+    exec_annotation --format detail-tsv --ko-list ${kegg_db_dir}/ko_list --profile ${kegg_db_dir}/profiles --cpu ${task.cpus} -o peptides_kofamscan_annotation.tsv ${peptides_fasta}
+    """
+}
 process merge_peptide_stats {
     tag "merge_peptide_stats"
     publishDir "${params.outdir}/main_results/peptide_results", mode: 'copy'
