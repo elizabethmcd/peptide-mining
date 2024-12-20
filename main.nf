@@ -75,6 +75,9 @@ workflow {
         .collect()
     mmseqs_all_v_all(rep_seqs_50id)
 
+    // cluster all peptides at 75% identity
+    mmseqs_all_food_cluster(combined_smorf_proteins)
+
     // deepsig predictions on combined, non-redundant smorf proteins
     deepsig(combined_smorf_proteins)
     deepsig_results = deepsig.out.deepsig_tsv
@@ -234,6 +237,31 @@ process mmseqs_all_v_all {
     mmseqs easy-search combined_representative_sequences.fasta combined_representative_sequences.fasta mmseqs-all-v-all-results.tsv tmp --threads ${task.cpus} --exhaustive-search
 
     """
+}
+
+process mmseqs_all_food_cluster {
+    tag "all_peptides_clustered"
+    publishDir "${params.outdir}/mmseqs_all_food_cluster", mode: 'copy'
+
+    memory = '10 GB'
+    cpus = 6
+
+    container "public.ecr.aws/biocontainers/mmseqs2:15.6f452--pl5321h6a68c12_2"
+    conda "envs/mmseqs2.yml"
+
+    input:
+    path(protein_fasta_file)
+
+    output:
+    path("*.fasta"), emit: across_food_representative_sequences
+    path("*.tsv"), emit: across_food_mmseqs_easy_search_tsv
+
+    script:
+    """
+    mmseqs easy-cluster ${protein_fasta_file} across_food_reps tmp --min-seq-id 0.75 -c 0.8 --threads ${task.cpus}
+    """
+
+
 }
 
 process deepsig {
