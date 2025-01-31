@@ -98,9 +98,6 @@ workflow {
         .combine(peptide_models_list)
     autopeptideml_predictions(model_combos_ch)
 
-    // kofamscan annotation
-    kofam_scan_annotation(combined_smorf_proteins, kofam_db_ch)
-
     // merge peptide stats from peptides.py, deepsig, blastp results, and autopeptideml results along with the metadata into one TSV output
     autopeptideml_results = autopeptideml_predictions.out.autopeptideml_tsv.collect()
     merge_peptide_stats(peptides_results, deepsig_results, blastp_results, genome_metadata, autopeptideml_results)
@@ -380,29 +377,6 @@ process autopeptideml_predictions {
         --model_folder "${model_dir}/${model_name}/ensemble" \\
         --model_name ${model_name} \\
         --output_tsv "autopeptideml_${model_name}.tsv"
-    """
-}
-
-process kofam_scan {
-    tag "kofam_scan_annotation"
-    publishDir "${params.outdir}/kofam_scan_annotation", mode: 'copy'
-
-    memory = "15 GB"
-    cpus = 6
-
-    container "public.ecr.aws/biocontainers/kofamscan:1.0.0--0"
-    conda "envs/kofamscan.yml"
-
-    input: 
-    path(peptides_fasta)
-    path(kegg_db_dir)
-
-    output: 
-    path("*.tsv"), emit: kofamscan_tsv
-
-    script:
-    """
-    exec_annotation --format detail-tsv --ko-list ${kegg_db_dir}/ko_list --profile ${kegg_db_dir}/profiles --cpu ${task.cpus} -o peptides_kofamscan_annotation.tsv ${peptides_fasta}
     """
 }
 process merge_peptide_stats {

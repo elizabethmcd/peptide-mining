@@ -22,6 +22,20 @@ nextflow run main.nf \\
 -profile <docker|conda>
 ```
 
+For example, to run the workflow with the test data provided in this repository, you can run the following command:
+
+```
+nextflow run main.nf \\
+--input_genomes test_data/genomes \\
+--outdir test_data/output \\
+--genome_metadata test_data/metadata/genome_metadata.tsv \\
+--peptides_fasta test_data/peptides/test_peptides.fasta \\
+--models_dir test_data/HPO_NegSearch_HP \\
+--models_list test_data/models_list.txt \\
+--threads 4 \\
+-profile docker
+```
+
 ## Databases
 
 The main external databases that are provided to this workflow are sequences of known peptides and machine-learning classification models for predicting bioactivity. We curated sets of peptide sequences from [Peptipedia](https://app.peptipedia.cl/) and used bioactivity classification models from [AutoPeptideML], which are available on [Zenodo](https://zenodo.org/records/13363975). You can provide any input set of peptide sequences as long as they are in FASTA format. By providing a TXT file of the list of models you want to perform bioactivity searches, you can select certain models or all models available through AutoPeptideML, or additionally your own models that you made. 

@@ -1,0 +1,21 @@
+{
+    "dataset": null,
+    "outputdir": "QS_1",
+    "verbose": true,
+    "threads": 12,
+    "seed": 1,
+    "plm": "esm2-8m",
+    "plm_batch_size": 12,
+    "config": "default_config",
+    "autosearch": "False",
+    "autosearch_tags": "",
+    "autosearch_proportion": 2,
+    "balance": "False",
+    "test_partition": "True",
+    "test_threshold": 0.3,
+    "test_size": 0.2,
+    "splits": "../New/QS_1/splits",
+    "val_partition": "True",
+    "val_n_folds": 10,
+    "folds": null
+}
